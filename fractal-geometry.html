@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fractal Geometry</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;overflow:hidden;cursor:crosshair;user-select:none;touch-action:none}
+  canvas{display:block;position:fixed;top:0;left:0}
+  .ui{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+  .hd{position:absolute;top:16px;left:18px;font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(10px,2.2vw,13px);letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+  .st{position:absolute;top:16px;right:18px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px;color:rgba(255,255,255,0.15);text-align:right;line-height:1.7;white-space:pre}
+  .seed{position:absolute;top:38px;right:18px;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:2px;color:rgba(255,255,255,0.1)}
+  .mt{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);pointer-events:all;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:7px 18px;cursor:pointer;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.3);transition:all 0.3s;display:flex;align-items:center;gap:8px}
+  .mt:hover{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6)}
+  .mt .aw{transition:transform 0.3s;font-size:9px}
+  .mt.open .aw{transform:rotate(180deg)}
+  .dw{position:absolute;bottom:48px;left:0;right:0;max-height:0;overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.3s;opacity:0;pointer-events:none}
+  .dw.open{max-height:60vh;opacity:1;pointer-events:all}
+  .di{margin:0 12px;background:rgba(0,0,0,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:18px 20px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;align-items:center}
+  .ps{display:flex;flex-direction:column;gap:8px;min-width:100px}
+  .sl{font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.18)}
+  .rw{display:flex;align-items:center;gap:8px}
+  .lb{font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.22);min-width:42px}
+  .vl{font-family:'Orbitron',monospace;font-size:6.5px;color:rgba(255,255,255,0.3);min-width:20px;text-align:right}
+  input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:1px;background:rgba(255,255,255,0.08);outline:none}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+  .br{display:flex;gap:3px;flex-wrap:wrap}
+  .bn{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.2);font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:1.5px;padding:4px 7px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;border-radius:3px}
+  .bn:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5)}
+  .bn.on{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.2)}
+  .rbtn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;padding:10px 24px;cursor:pointer;transition:all 0.25s;text-transform:uppercase;border-radius:6px}
+  .rbtn:hover{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.3)}
+  .rbtn:active{transform:scale(0.97)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="ui">
+  <div class="hd">Fractal Geometry</div>
+  <div class="st" id="stats"></div>
+  <div class="seed" id="seedD"></div>
+  <div class="dw" id="dw"><div class="di">
+    <div class="ps">
+      <div class="sl">Tune</div>
+      <div class="rw"><span class="lb">Speed</span><input type="range" id="rSp" min="20" max="250" value="80" step="5"><span class="vl" id="xSp">0.8x</span></div>
+      <div class="rw"><span class="lb">Trail</span><input type="range" id="rTr" min="2" max="40" value="14" step="1"><span class="vl" id="xTr">14</span></div>
+    </div>
+    <div class="ps" style="align-items:center">
+      <button class="rbtn" id="randBtn">Randomize</button>
+    </div>
+    <div class="ps">
+      <div class="sl">Archetype</div>
+      <div class="br">
+        <button class="bn on" data-a="random">Random</button>
+        <button class="bn" data-a="spore">Spore</button>
+        <button class="bn" data-a="crystal">Crystal</button>
+        <button class="bn" data-a="neural">Neural</button>
+        <button class="bn" data-a="flora">Flora</button>
+        <button class="bn" data-a="web">Web</button>
+      </div>
+    </div>
+  </div></div>
+  <button class="mt" id="tog"><span class="aw">&#9650;</span> Controls</button>
+</div>
+<script>
+document.getElementById('tog').addEventListener('click', function() {
+  document.getElementById('dw').classList.toggle('open');
+  this.classList.toggle('open');
+});
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d', {alpha: false});
+var W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+var mouseX = W/2, mouseY = H/2, tMX = W/2, tMY = H/2;
+var time = 0, clickPulse = 0, speed = 80, trail = 14;
+var effectiveDepth = 5, throttleFps = 60, fpsVal = 60;
+var archetype = 'random';
+
+/* Generated pattern state */
+var G = {
+  depth: 5, branches: 4, spread: 40, shrink: 58, symmetry: 4,
+  wobble: 45, mouse: 50, hue: 60, spectrum: 30, glow: 20,
+  colorMode: 'rainbow', lineMode: 'dots',
+  mirror: false, spin: false, pulse: true,
+  branchCurve: 0, lengthVar: 1, angleJitter: 0,
+  thickScale: 1, tipSize: 1.2
+};
+
+document.addEventListener('mousemove', function(e) { tMX = e.clientX; tMY = e.clientY; });
+document.addEventListener('touchmove', function(e) { e.preventDefault(); tMX = e.touches[0].clientX; tMY = e.touches[0].clientY; }, {passive: false});
+document.addEventListener('click', function(e) { if (!e.target.closest('.dw,.mt,.rbtn,[data-a]')) clickPulse = 1; });
+
+document.getElementById('rSp').addEventListener('input', function() { speed = +this.value; document.getElementById('xSp').textContent = (speed/100).toFixed(1) + 'x'; });
+document.getElementById('rTr').addEventListener('input', function() { trail = +this.value; document.getElementById('xTr').textContent = trail; });
+
+/* Archetypes */
+var archetypes = {
+  random:  {depth:[3,7], branches:[2,8], spread:[15,80], shrink:[45,75], sym:[1,8], wobble:[10,80], hue:[0,360], spectrum:[10,100], modes:['dots','curves','sharp'], mirrorP:0.4, spinP:0.4, pulseP:0.5, glow:[15,80], colors:['rainbow','mono','neon'], curve:[-0.3,0.3], lenVar:[0.8,1.2], jitter:[0,0.15], thick:[0.5,2.0], tip:[0.5,3.0], trail:[6,25]},
+  spore:   {depth:[4,6], branches:[4,7], spread:[30,55], shrink:[52,65], sym:[3,6], wobble:[30,60], hue:[30,90],  spectrum:[20,45],  modes:['dots'],               mirrorP:0,   spinP:0,   pulseP:1,   glow:[15,35], colors:['rainbow'],              curve:[-0.1,0.1], lenVar:[0.9,1.1], jitter:[0,0.05], thick:[0.6,1.2], tip:[1.0,2.5], trail:[14,22]},
+  crystal: {depth:[5,7], branches:[3,6], spread:[20,35], shrink:[50,60], sym:[4,8], wobble:[5,20],  hue:[160,220],spectrum:[10,30],  modes:['sharp'],              mirrorP:1,   spinP:0,   pulseP:0,   glow:[50,80], colors:['mono'],                 curve:[-0.05,0.05],lenVar:[0.95,1.05],jitter:[0,0.03],thick:[0.4,1.0], tip:[0.3,0.8], trail:[4,8]},
+  neural:  {depth:[4,6], branches:[2,4], spread:[35,70], shrink:[55,72], sym:[1,3], wobble:[20,50], hue:[180,280],spectrum:[30,70],  modes:['curves'],             mirrorP:0.4, spinP:0,   pulseP:0.5, glow:[20,50], colors:['rainbow','neon'],       curve:[-0.2,0.2], lenVar:[0.85,1.15],jitter:[0.05,0.12],thick:[0.8,1.8],tip:[0.8,2.0], trail:[8,16]},
+  flora:   {depth:[5,7], branches:[2,4], spread:[25,50], shrink:[58,72], sym:[1,3], wobble:[15,40], hue:[60,160], spectrum:[15,40],  modes:['curves'],             mirrorP:0.3, spinP:0.3, pulseP:1,   glow:[15,40], colors:['rainbow'],              curve:[0.05,0.25],lenVar:[0.9,1.2], jitter:[0.02,0.08],thick:[0.7,1.5],tip:[1.0,2.5], trail:[10,18]},
+  web:     {depth:[4,6], branches:[3,5], spread:[40,70], shrink:[48,60], sym:[5,8], wobble:[10,30], hue:[0,360],  spectrum:[5,15],   modes:['sharp','curves'],     mirrorP:1,   spinP:1,   pulseP:0,   glow:[30,60], colors:['mono','rainbow'],       curve:[-0.08,0.08],lenVar:[0.95,1.05],jitter:[0,0.04],thick:[0.3,0.8], tip:[0.3,0.6], trail:[5,10]},
+};
+
+function rng(a, b) { return Math.random() * (b - a) + a; }
+function rngI(a, b) { return Math.floor(rng(a, b + 1)); }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+function randomize() {
+  var a = archetypes[archetype] || archetypes.random;
+  G.depth = rngI(a.depth[0], a.depth[1]);
+  G.branches = rngI(a.branches[0], a.branches[1]);
+  G.spread = rng(a.spread[0], a.spread[1]);
+  G.shrink = rng(a.shrink[0], a.shrink[1]);
+  G.symmetry = rngI(a.sym[0], a.sym[1]);
+  G.wobble = rng(a.wobble[0], a.wobble[1]);
+  G.mouse = rng(20, 70);
+  G.hue = rng(a.hue[0], a.hue[1]);
+  G.spectrum = rng(a.spectrum[0], a.spectrum[1]);
+  G.glow = rng(a.glow[0], a.glow[1]);
+  G.colorMode = pick(a.colors);
+  G.lineMode = pick(a.modes);
+  G.mirror = Math.random() < a.mirrorP;
+  G.spin = Math.random() < a.spinP;
+  G.pulse = Math.random() < a.pulseP;
+  G.branchCurve = rng(a.curve[0], a.curve[1]);
+  G.lengthVar = rng(a.lenVar[0], a.lenVar[1]);
+  G.angleJitter = rng(a.jitter[0], a.jitter[1]);
+  G.thickScale = rng(a.thick[0], a.thick[1]);
+  G.tipSize = rng(a.tip[0], a.tip[1]);
+  trail = rngI(a.trail[0], a.trail[1]);
+  effectiveDepth = G.depth;
+  document.getElementById('rTr').value = trail;
+  document.getElementById('xTr').textContent = trail;
+  var seed = Date.now().toString(36).slice(-6).toUpperCase();
+  document.getElementById('seedD').textContent = 'SEED ' + seed;
+}
+
+document.getElementById('randBtn').addEventListener('click', function() { randomize(); });
+document.querySelectorAll('[data-a]').forEach(function(b) {
+  b.addEventListener('click', function() {
+    document.querySelectorAll('[data-a]').forEach(function(x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    archetype = b.getAttribute('data-a');
+    randomize();
+  });
+});
+
+/* Renderer */
+var MAX = 80000;
+var sX1 = new Float32Array(MAX), sY1 = new Float32Array(MAX);
+var sX2 = new Float32Array(MAX), sY2 = new Float32Array(MAX);
+var sCX = new Float32Array(MAX), sCY = new Float32Array(MAX);
+var sH = new Float32Array(MAX), sSa = new Float32Array(MAX);
+var sLi = new Float32Array(MAX), sAl = new Float32Array(MAX);
+var sWd = new Float32Array(MAX), sDp = new Uint8Array(MAX);
+var segN = 0;
+var MTP = 5000;
+var tpX = new Float32Array(MTP), tpY = new Float32Array(MTP);
+var tpH = new Float32Array(MTP), tpR = new Float32Array(MTP);
+var tipN = 0;
+
+function build(x, y, ang, len, dep, maxD, brIdx) {
+  if (dep <= 0 || len < 1.5 || segN >= MAX - 10) return;
+  var ratio = dep / maxD;
+  var mA = Math.atan2(mouseY - y, mouseX - x);
+  var ms = G.mouse / 100;
+  var ws = G.wobble / 100;
+  var w = Math.sin(time * 2.2 + dep * 0.9) * ws * 0.5;
+  var mw = Math.sin(mA) * ms * 0.2 * (1 - ratio);
+  var curve = G.branchCurve * Math.sin(dep * 1.5 + time * 0.5);
+  var a = ang + w + mw + curve;
+  var lMod = G.lengthVar + Math.sin(brIdx * 2.7 + dep) * 0.1;
+  var ex = x + Math.cos(a) * len * lMod;
+  var ey = y + Math.sin(a) * len * lMod;
+
+  var h, s, l;
+  var sp = G.spectrum / 35;
+  if (G.colorMode === 'mono') { h = G.hue; s = 15 + ratio * 10; l = 35 + ratio * 45; }
+  else if (G.colorMode === 'neon') { h = (G.hue + dep * 50 * sp + time * 30) % 360; s = 90; l = 45 + ratio * 25; }
+  else { h = (G.hue + dep * G.spectrum + time * 18) % 360; s = 55 + ratio * 35; l = 28 + ratio * 42; }
+
+  var alpha = (0.12 + ratio * 0.55) * (0.7 + clickPulse * 0.5);
+  var breathe = G.pulse ? 1 + Math.sin(time * 1.5) * 0.15 : 1;
+
+  var i = segN;
+  sX1[i] = x; sY1[i] = y; sX2[i] = ex; sY2[i] = ey;
+  sCX[i] = (x + ex) / 2 + Math.sin(time + dep) * len * 0.18;
+  sCY[i] = (y + ey) / 2 + Math.cos(time * 0.7 + dep) * len * 0.18;
+  sH[i] = h; sSa[i] = s; sLi[i] = l; sAl[i] = alpha;
+  sWd[i] = (ratio * 3 + 0.3) * G.thickScale;
+  sDp[i] = dep;
+  segN++;
+
+  if (dep === 1 && tipN < MTP) {
+    tpX[tipN] = ex; tpY[tipN] = ey; tpH[tipN] = h;
+    tpR[tipN] = G.tipSize * (0.8 + Math.sin(time * 3 + ex * 0.01) * 0.5);
+    tipN++;
+  }
+
+  var sr = (G.spread / 180) * Math.PI;
+  var sf = (G.shrink / 100) + Math.sin(time * 0.5 + dep) * 0.06;
+  var n = G.branches;
+  var md = Math.hypot(mouseX - ex, mouseY - ey);
+  var mg = Math.max(0, 1 - md / 400) * ms * 0.35;
+
+  for (var j = 0; j < n; j++) {
+    var jit = Math.sin(j * 7.3 + dep * 3.1) * G.angleJitter;
+    var ba = a + (j - (n - 1) / 2) * sr * (2 / n) + Math.sin(time + j * 1.5) * ws * 0.2 + mg * Math.sin(mA + j) + jit;
+    build(ex, ey, ba, len * sf * breathe, dep - 1, maxD, j);
+  }
+}
+
+function renderSegs() {
+  var gs = G.glow / 100;
+  var sh = G.lineMode === 'sharp';
+  var dt = G.lineMode === 'dots';
+  for (var i = 0; i < segN; i++) {
+    var st = 'hsla(' + sH[i] + ',' + sSa[i] + '%,' + sLi[i] + '%,' + sAl[i] + ')';
+    if (dt) { ctx.beginPath(); ctx.arc(sX2[i], sY2[i], sWd[i] * 0.8, 0, 6.283); ctx.fillStyle = st; ctx.fill(); }
+    else { ctx.beginPath(); ctx.strokeStyle = st; ctx.lineWidth = sWd[i]; ctx.lineCap = 'round';
+      if (sh) { ctx.moveTo(sX1[i], sY1[i]); ctx.lineTo(sX2[i], sY2[i]); }
+      else { ctx.moveTo(sX1[i], sY1[i]); ctx.quadraticCurveTo(sCX[i], sCY[i], sX2[i], sY2[i]); }
+      ctx.stroke(); }
+  }
+  if (gs > 0.05) {
+    var th = effectiveDepth * 0.6;
+    var glowLimit = Math.min(segN, 2000);
+    for (var i = 0; i < glowLimit; i++) {
+      if (sDp[i] < th) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = 'hsla(' + sH[i] + ',75%,65%,' + sAl[i] * gs * 0.18 + ')';
+      ctx.lineWidth = sWd[i] + 4; ctx.lineCap = 'round';
+      if (dt) { ctx.arc(sX2[i], sY2[i], sWd[i] * 1.4, 0, 6.283); ctx.fillStyle = ctx.strokeStyle; ctx.fill(); }
+      else if (sh) { ctx.moveTo(sX1[i], sY1[i]); ctx.lineTo(sX2[i], sY2[i]); ctx.stroke(); }
+      else { ctx.moveTo(sX1[i], sY1[i]); ctx.quadraticCurveTo(sCX[i], sCY[i], sX2[i], sY2[i]); ctx.stroke(); }
+    }
+  }
+  for (var i = 0; i < tipN; i++) {
+    ctx.beginPath(); ctx.arc(tpX[i], tpY[i], tpR[i], 0, 6.283);
+    ctx.fillStyle = 'hsla(' + tpH[i] + ',85%,70%,0.5)'; ctx.fill();
+  }
+}
+
+/* Particles */
+var PN = 25;
+var ppx = new Float32Array(PN), ppy = new Float32Array(PN);
+var ppvx = new Float32Array(PN), ppvy = new Float32Array(PN);
+var ppsz = new Float32Array(PN), ppho = new Float32Array(PN);
+for (var i = 0; i < PN; i++) {
+  ppx[i] = Math.random() * 3000; ppy[i] = Math.random() * 2000;
+  ppvx[i] = (Math.random() - 0.5) * 0.2; ppvy[i] = (Math.random() - 0.5) * 0.2;
+  ppsz[i] = Math.random() + 0.3; ppho[i] = Math.random() * 360;
+}
+function drawParts() {
+  for (var i = 0; i < PN; i++) {
+    ppx[i] += ppvx[i]; ppy[i] += ppvy[i];
+    if (ppx[i] < 0) ppx[i] = W; if (ppx[i] > W) ppx[i] = 0;
+    if (ppy[i] < 0) ppy[i] = H; if (ppy[i] > H) ppy[i] = 0;
+    ctx.beginPath(); ctx.arc(ppx[i], ppy[i], ppsz[i], 0, 6.283);
+    ctx.fillStyle = 'hsla(' + ((G.hue + ppho[i]) % 360) + ',35%,45%,' + (0.08 + Math.sin(time * 1.2 + ppho[i]) * 0.04) + ')';
+    ctx.fill();
+  }
+}
+
+function updateThrottle() {
+  throttleFps = throttleFps * 0.7 + fpsVal * 0.3;
+  if (throttleFps < 30 && effectiveDepth > 2) effectiveDepth = Math.max(2, effectiveDepth - 0.8);
+  else if (throttleFps < 40 && effectiveDepth > 2) effectiveDepth = Math.max(2, effectiveDepth - 0.3);
+  else if (throttleFps > 55 && effectiveDepth < G.depth) effectiveDepth = Math.min(G.depth, effectiveDepth + 0.15);
+  if (effectiveDepth > G.depth) effectiveDepth = G.depth;
+}
+
+/* Init */
+randomize();
+
+var frames = 0, lastFT = performance.now();
+function frame() {
+  requestAnimationFrame(frame);
+  time += 0.008 * (speed / 100);
+  mouseX += (tMX - mouseX) * 0.07;
+  mouseY += (tMY - mouseY) * 0.07;
+  clickPulse *= 0.93;
+  if (clickPulse < 0.01) clickPulse = 0;
+
+  ctx.fillStyle = 'rgba(0,0,0,' + (trail / 100) + ')';
+  ctx.fillRect(0, 0, W, H);
+  drawParts();
+
+  segN = 0; tipN = 0;
+  var cx = W / 2, cy = H / 2;
+  var bl = Math.min(W, H) * 0.17;
+  var n = G.symmetry;
+  var sa = G.spin ? time * 0.2 : 0;
+  var ud = Math.round(effectiveDepth);
+
+  function ds() {
+    segN = 0; tipN = 0;
+    for (var s = 0; s < n; s++) {
+      var a = (Math.PI * 2 / n) * s + sa;
+      var ox = Math.cos(a) * 25, oy = Math.sin(a) * 25;
+      build(cx + ox, cy + oy, a - Math.PI / 2 + Math.sin(time * 0.3 + s) * 0.35, bl, ud, ud, s);
+    }
+    renderSegs();
+  }
+
+  if (G.mirror) {
+    for (var p = 0; p < 2; p++) {
+      ctx.save(); ctx.translate(cx, cy);
+      if (p === 1) ctx.scale(-1, 1);
+      ctx.translate(-cx, -cy); ds(); ctx.restore();
+    }
+  } else { ds(); }
+
+  frames++;
+  var now = performance.now();
+  if (now - lastFT >= 1000) { fpsVal = frames; frames = 0; lastFT = now; updateThrottle(); }
+  document.getElementById('stats').textContent = fpsVal + ' FPS\n' + segN + ' segs';
+}
+
+frame();
+</script>
+</body>
+</html>

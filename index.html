@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractal Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Quicksand:wght@300;400&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Quicksand',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+  h1{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(18px,4vw,32px);letter-spacing:10px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;text-align:center}
+  .sub{font-family:'Quicksand',sans-serif;font-weight:300;font-size:clamp(11px,2vw,14px);letter-spacing:4px;color:rgba(255,255,255,0.15);margin-bottom:50px;text-transform:lowercase;text-align:center}
+  .grid{display:grid;grid-template-columns:1fr;gap:20px;width:100%;max-width:900px}
+  @media(min-width:640px){.grid{grid-template-columns:1fr 1fr 1fr}}
+  a.card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;padding:40px 24px;border:1px solid rgba(255,255,255,0.06);border-radius:14px;background:rgba(255,255,255,0.02);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
+  a.card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 120%,rgba(255,255,255,0.03),transparent 70%);opacity:0;transition:opacity 0.4s}
+  a.card:hover{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);transform:translateY(-4px)}
+  a.card:hover::before{opacity:1}
+  .card-icon{font-size:36px;margin-bottom:18px;opacity:0.4;transition:opacity 0.4s}
+  a.card:hover .card-icon{opacity:0.7}
+  .card-title{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(10px,2vw,13px);letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:10px;transition:color 0.4s}
+  a.card:hover .card-title{color:rgba(255,255,255,0.75)}
+  .card-desc{font-family:'Quicksand',sans-serif;font-weight:300;font-size:clamp(10px,1.8vw,12px);letter-spacing:2px;color:rgba(255,255,255,0.15);text-align:center;line-height:1.8;text-transform:lowercase;transition:color 0.4s}
+  a.card:hover .card-desc{color:rgba(255,255,255,0.3)}
+  .foot{margin-top:60px;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:3px;color:rgba(255,255,255,0.08);text-transform:uppercase}
+</style>
+</head>
+<body>
+  <h1>Fractal Lab</h1>
+  <div class="sub">three ways to watch infinity</div>
+  <div class="grid">
+    <a class="card" href="fractal-diver.html">
+      <div class="card-icon">&#8734;</div>
+      <div class="card-title">Diver</div>
+      <div class="card-desc">endless mandelbrot zoom<br>perturbation rendered</div>
+    </a>
+    <a class="card" href="fractal-geometry.html">
+      <div class="card-icon">&#10047;</div>
+      <div class="card-title">Geometry</div>
+      <div class="card-desc">randomized organic fractals<br>click to regenerate</div>
+    </a>
+    <a class="card" href="fractal-kaleidoscope.html">
+      <div class="card-icon">&#10022;</div>
+      <div class="card-title">Kaleidoscope</div>
+      <div class="card-desc">mandelbrot through symmetry<br>drifting along the boundary</div>
+    </a>
+  </div>
+  <div class="foot">GPU accelerated &middot; WebGL</div>
+</body>
+</html>

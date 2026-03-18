@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fractal Diver</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;overflow:hidden;cursor:default;user-select:none;touch-action:none}
+  canvas{display:block;position:fixed;top:0;left:0}
+  .ui{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+  .hd{position:absolute;top:16px;left:18px;font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(10px,2.2vw,13px);letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+  .st{position:absolute;top:16px;right:18px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1.5px;color:rgba(255,255,255,0.15);text-align:right;line-height:1.7;white-space:pre}
+  .ln{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',monospace;font-size:clamp(9px,2vw,11px);letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,0);transition:color 1.2s;white-space:nowrap}
+  .ln.show{color:rgba(255,255,255,0.25)}
+  .mt{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);pointer-events:all;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:7px 18px;cursor:pointer;font-family:'Orbitron',monospace;font-size:7px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.3);transition:all 0.3s;display:flex;align-items:center;gap:8px}
+  .mt:hover{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6)}
+  .mt .aw{transition:transform 0.3s;font-size:9px}
+  .mt.open .aw{transform:rotate(180deg)}
+  .dw{position:absolute;bottom:48px;left:0;right:0;max-height:0;overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.3s;opacity:0;pointer-events:none}
+  .dw.open{max-height:60vh;opacity:1;pointer-events:all}
+  .di{margin:0 12px;background:rgba(0,0,0,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:18px 20px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .ps{display:flex;flex-direction:column;gap:10px;min-width:120px}
+  .sl{font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.18)}
+  .rw{display:flex;align-items:center;gap:8px}
+  .lb{font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.22);min-width:42px}
+  .vl{font-family:'Orbitron',monospace;font-size:6.5px;color:rgba(255,255,255,0.3);min-width:26px;text-align:right}
+  input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:1px;background:rgba(255,255,255,0.08);outline:none}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.3);cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+  .br{display:flex;gap:3px;flex-wrap:wrap}
+  .bn{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.2);font-family:'Orbitron',monospace;font-size:6.5px;letter-spacing:1.5px;padding:4px 7px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;border-radius:3px}
+  .bn:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5)}
+  .bn.on{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.2)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="ui">
+  <div class="hd">Fractal Diver</div>
+  <div class="st" id="stats"></div>
+  <div class="ln" id="locN"></div>
+  <div class="dw" id="dw"><div class="di">
+    <div class="ps">
+      <div class="sl">Dive</div>
+      <div class="rw"><span class="lb">Speed</span><input type="range" id="rDv" min="3" max="80" value="18" step="1"><span class="vl" id="xDv">0.18x</span></div>
+    </div>
+    <div class="ps">
+      <div class="sl">Palette</div>
+      <div class="br">
+        <button class="bn on" data-p="0">Spectrum</button>
+        <button class="bn" data-p="1">Fire</button>
+        <button class="bn" data-p="2">Ice</button>
+        <button class="bn" data-p="3">Acid</button>
+        <button class="bn" data-p="4">Void</button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="sl">Location</div>
+      <div class="br" id="locB"></div>
+    </div>
+  </div></div>
+  <button class="mt" id="tog"><span class="aw">&#9650;</span> Controls</button>
+</div>
+<script>
+document.getElementById('tog').addEventListener('click', function(){
+  document.getElementById('dw').classList.toggle('open');
+  this.classList.toggle('open');
+});
+
+var cv = document.getElementById('cv');
+var gl = cv.getContext('webgl', {antialias: false});
+if (!gl) { document.body.innerHTML = '<h1 style="color:#fff;padding:40px">WebGL not supported</h1>'; throw new Error('x'); }
+var hasFloat = !!gl.getExtension('OES_texture_float');
+
+var W, H, dpr;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  gl.viewport(0, 0, cv.width, cv.height);
+}
+resize();
+window.addEventListener('resize', resize);
+
+/* Orbit texture for perturbation */
+var OMAX = 4096;
+var orbitTex = null;
+if (hasFloat) {
+  orbitTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, orbitTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, OMAX, 1, 0, gl.RGBA, gl.FLOAT, null);
+}
+
+/* Shader — two modes: direct (0) and perturbation (1) */
+var fSrc = [
+  'precision highp float;',
+  'uniform vec2 uRes, uCen;',
+  'uniform float uTime, uLogSc, uFade;',
+  'uniform sampler2D uOrb;',
+  'uniform int uOLen, uMaxIt, uPal, uMode;',
+  '',
+  'vec3 cpal(float t, vec3 a, vec3 b, vec3 c, vec3 d) {',
+  '  return a + b * cos(6.2831853 * (c * t + d));',
+  '}',
+  'vec3 getCol(float t, int p) {',
+  '  t = fract(t);',
+  '  if (p == 1) return cpal(t, vec3(0.5,0.2,0.07), vec3(0.5,0.35,0.25), vec3(1.0,0.7,0.5), vec3(0.0,0.12,0.2));',
+  '  if (p == 2) return cpal(t, vec3(0.15,0.3,0.55), vec3(0.3,0.35,0.45), vec3(0.8,1.0,1.0), vec3(0.0,0.1,0.2));',
+  '  if (p == 3) return cpal(t, vec3(0.5), vec3(0.5), vec3(1.0,1.0,0.5), vec3(0.0,0.2,0.5));',
+  '  if (p == 4) return cpal(t, vec3(0.12,0.04,0.2), vec3(0.18,0.08,0.28), vec3(1.0,0.5,1.0), vec3(0.0,0.08,0.12));',
+  '  return cpal(t, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.0,0.33,0.67));',
+  '}',
+  '',
+  'void main() {',
+  '  vec2 pix = (gl_FragCoord.xy - uRes * 0.5) / min(uRes.x, uRes.y);',
+  '  float scale = exp(uLogSc);',
+  '  int escAt = -1;',
+  '  float finalMag = 0.0;',
+  '',
+  '  if (uMode == 0) {',
+  '    float zm = 1.0 / scale;',
+  '    float cR = pix.x / zm + uCen.x;',
+  '    float cI = pix.y / zm + uCen.y;',
+  '    float zR = 0.0, zI = 0.0;',
+  '    for (int i = 0; i < 1000; i++) {',
+  '      if (i >= uMaxIt) break;',
+  '      float mag = zR * zR + zI * zI;',
+  '      if (mag > 256.0) { escAt = i; finalMag = mag; break; }',
+  '      float nR = zR * zR - zI * zI + cR;',
+  '      zI = 2.0 * zR * zI + cI;',
+  '      zR = nR;',
+  '    }',
+  '  } else {',
+  '    float dcR = pix.x * scale;',
+  '    float dcI = pix.y * scale;',
+  '    float dR = 0.0, dI = 0.0;',
+  '    int lim = uMaxIt;',
+  '    if (uOLen < lim) lim = uOLen;',
+  '    for (int i = 0; i < 4096; i++) {',
+  '      if (i >= lim) break;',
+  '      float tu = (float(i) + 0.5) / 4096.0;',
+  '      vec4 ref = texture2D(uOrb, vec2(tu, 0.5));',
+  '      float ZR = ref.x, ZI = ref.y;',
+  '      float fR = ZR + dR, fI = ZI + dI;',
+  '      float mag = fR * fR + fI * fI;',
+  '      if (mag > 256.0) { escAt = i; finalMag = mag; break; }',
+  '      float nR = 2.0 * (ZR * dR - ZI * dI) + (dR * dR - dI * dI) + dcR;',
+  '      float nI = 2.0 * (ZR * dI + ZI * dR) + 2.0 * dR * dI + dcI;',
+  '      dR = nR; dI = nI;',
+  '    }',
+  '  }',
+  '',
+  '  vec3 col;',
+  '  if (escAt < 0) {',
+  '    col = cpal(uTime * 0.02 + length(pix), vec3(0.008), vec3(0.015), vec3(1.0,0.5,0.7), vec3(0.0,0.3,0.6));',
+  '  } else {',
+  '    float fi = float(escAt);',
+  '    float lz = log(finalMag) * 0.5;',
+  '    float nu = log(lz / log(2.0)) / log(2.0);',
+  '    float ct = (fi + 1.0 - nu) / 16.0 + uTime * 0.04;',
+  '    col = getCol(ct, uPal);',
+  '    float depth = fi / float(uMaxIt);',
+  '    col *= 1.0 - depth * 0.2;',
+  '    col += col * pow(1.0 - depth, 2.0) * 0.5;',
+  '    col = mix(col, vec3(1.0), pow(max(0.0, 1.0 - depth), 4.0) * 0.12);',
+  '  }',
+  '  float vig = length((gl_FragCoord.xy / uRes - 0.5) * 1.3);',
+  '  col *= (1.0 - vig * vig * 0.35) * uFade;',
+  '  col = pow(max(col, vec3(0.0)), vec3(0.92));',
+  '  gl_FragColor = vec4(col, 1.0);',
+  '}'
+].join('\n');
+
+function mkS(src, ty) {
+  var sh = gl.createShader(ty);
+  gl.shaderSource(sh, src);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    console.error('Shader error:', gl.getShaderInfoLog(sh));
+    return null;
+  }
+  return sh;
+}
+
+var vS = mkS('attribute vec2 pos; void main() { gl_Position = vec4(pos, 0.0, 1.0); }', gl.VERTEX_SHADER);
+var fS = mkS(fSrc, gl.FRAGMENT_SHADER);
+if (!vS || !fS) throw new Error('shader compile failed');
+
+var prog = gl.createProgram();
+gl.attachShader(prog, vS);
+gl.attachShader(prog, fS);
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+  console.error('Link:', gl.getProgramInfoLog(prog));
+  throw new Error('link');
+}
+gl.useProgram(prog);
+
+var buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+var posLoc = gl.getAttribLocation(prog, 'pos');
+gl.enableVertexAttribArray(posLoc);
+gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+var uRes = gl.getUniformLocation(prog, 'uRes');
+var uTime = gl.getUniformLocation(prog, 'uTime');
+var uLogSc = gl.getUniformLocation(prog, 'uLogSc');
+var uOrb = gl.getUniformLocation(prog, 'uOrb');
+var uOLen = gl.getUniformLocation(prog, 'uOLen');
+var uMaxIt = gl.getUniformLocation(prog, 'uMaxIt');
+var uPal = gl.getUniformLocation(prog, 'uPal');
+var uMode = gl.getUniformLocation(prog, 'uMode');
+var uCen = gl.getUniformLocation(prog, 'uCen');
+var uFade = gl.getUniformLocation(prog, 'uFade');
+
+if (hasFloat) {
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, orbitTex);
+  gl.uniform1i(uOrb, 0);
+}
+
+/* State */
+var palIdx = 0;
+var diveSpd = 0.18;
+var diving = true;
+var time = 0;
+var logZoom = 0;
+var refLen = 0;
+var fade = 1;
+var fadeDir = 0;
+var pendIdx = -1;
+var locT = 0;
+
+/* Orbit computation (CPU float64) */
+function computeOrbit(cx, cy) {
+  if (!hasFloat) return;
+  var data = new Float32Array(OMAX * 4);
+  var zr = 0, zi = 0;
+  refLen = OMAX;
+  for (var i = 0; i < OMAX; i++) {
+    data[i * 4] = zr;
+    data[i * 4 + 1] = zi;
+    if (zr * zr + zi * zi > 1e16) { refLen = i; break; }
+    var nr = zr * zr - zi * zi + cx;
+    var ni = 2 * zr * zi + cy;
+    zr = nr; zi = ni;
+  }
+  gl.bindTexture(gl.TEXTURE_2D, orbitTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, OMAX, 1, 0, gl.RGBA, gl.FLOAT, data);
+}
+
+/* Verified locations — tested with float32 perturbation simulation */
+var LOCS = [
+  { cx: 0.281717921930775, cy: 0.5771052841488505, name: 'Vortex', pt: true, mz: 25 },
+  { cx: -0.77568377, cy: 0.13646737, name: 'Spiral Arm', pt: true, mz: 22 },
+  { cx: -0.1010963638456, cy: 0.9562865108091, name: 'Dendrite', pt: true, mz: 20 },
+  { cx: -0.235125, cy: 0.827215, name: 'Cusp', pt: false, mz: 11 },
+  { cx: -0.7436438870371587, cy: 0.13182590420531197, name: 'Seahorse', pt: false, mz: 11 },
+  { cx: 0.3602404434376143, cy: -0.6413130610648031, name: 'Double Spiral', pt: false, mz: 9 },
+  { cx: -1.7687788334705765, cy: -0.001738996519701, name: 'Mini-Brot', pt: false, mz: 9 },
+];
+var locIdx = 0;
+var curLoc = LOCS[0];
+
+/* Build location buttons */
+var lbEl = document.getElementById('locB');
+LOCS.forEach(function(loc, i) {
+  var b = document.createElement('button');
+  b.className = 'bn' + (i === 0 ? ' on' : '');
+  b.textContent = loc.name;
+  b.setAttribute('data-li', i);
+  b.addEventListener('click', function() {
+    document.querySelectorAll('[data-li]').forEach(function(x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    trigTrans(i);
+  });
+  lbEl.appendChild(b);
+});
+
+function showLN(name) {
+  var el = document.getElementById('locN');
+  el.textContent = name;
+  el.classList.add('show');
+  locT = 3;
+}
+
+function applyLoc(idx) {
+  locIdx = idx % LOCS.length;
+  curLoc = LOCS[locIdx];
+  logZoom = 0;
+  if (curLoc.pt && hasFloat) computeOrbit(curLoc.cx, curLoc.cy);
+  showLN(curLoc.name);
+  document.querySelectorAll('[data-li]').forEach(function(b) {
+    b.classList.toggle('on', Number(b.getAttribute('data-li')) === locIdx);
+  });
+}
+
+function trigTrans(idx) { pendIdx = idx; fadeDir = -1; }
+function nextLoc() { trigTrans((locIdx + 1) % LOCS.length); }
+
+applyLoc(0);
+
+/* Events */
+document.addEventListener('wheel', function(e) {
+  diveSpd = Math.max(0.03, Math.min(0.8, diveSpd + (e.deltaY > 0 ? -0.02 : 0.02)));
+  document.getElementById('rDv').value = Math.round(diveSpd * 100);
+  document.getElementById('xDv').textContent = diveSpd.toFixed(2) + 'x';
+}, { passive: true });
+
+document.addEventListener('keydown', function(e) {
+  if (e.code === 'Space') { e.preventDefault(); diving = !diving; }
+  if (e.code === 'KeyR') nextLoc();
+});
+
+cv.addEventListener('click', function() { diving = !diving; });
+
+document.getElementById('rDv').addEventListener('input', function() {
+  diveSpd = Number(this.value) * 0.01;
+  document.getElementById('xDv').textContent = diveSpd.toFixed(2) + 'x';
+});
+
+document.querySelectorAll('[data-p]').forEach(function(b) {
+  b.addEventListener('click', function() {
+    document.querySelectorAll('[data-p]').forEach(function(x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    palIdx = Number(b.getAttribute('data-p'));
+  });
+});
+
+/* Render */
+var fc = 0, lt = performance.now(), fpv = 0;
+
+function render() {
+  requestAnimationFrame(render);
+  var dt = 0.016;
+  time += dt * 0.8;
+
+  if (locT > 0) { locT -= dt; if (locT <= 0) document.getElementById('locN').classList.remove('show'); }
+
+  if (diving && diveSpd > 0 && fadeDir === 0) {
+    logZoom += dt * diveSpd * 0.5;
+    if (logZoom > curLoc.mz) nextLoc();
+  }
+
+  if (fadeDir === -1) {
+    fade -= dt * 1.8;
+    if (fade <= 0) { fade = 0; if (pendIdx >= 0) { applyLoc(pendIdx); pendIdx = -1; } fadeDir = 1; }
+  } else if (fadeDir === 1) {
+    fade += dt * 1.5;
+    if (fade >= 1) { fade = 1; fadeDir = 0; }
+  }
+
+  var usePerturb = curLoc.pt && hasFloat;
+  var curIt = Math.min(OMAX, Math.round(500 + logZoom * 20));
+
+  if (hasFloat) {
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, orbitTex);
+  }
+
+  gl.uniform2f(uRes, cv.width, cv.height);
+  gl.uniform1f(uTime, time);
+  gl.uniform1f(uLogSc, -logZoom);
+  gl.uniform1i(uOrb, 0);
+  gl.uniform1i(uOLen, usePerturb ? refLen : 0);
+  gl.uniform1i(uMaxIt, curIt);
+  gl.uniform1i(uMode, usePerturb ? 1 : 0);
+  gl.uniform2f(uCen, curLoc.cx, curLoc.cy);
+  gl.uniform1i(uPal, palIdx);
+  gl.uniform1f(uFade, fade);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  fc++;
+  var now = performance.now();
+  if (now - lt >= 1000) { fpv = fc; fc = 0; lt = now; }
+  var zoom = Math.exp(logZoom);
+  var zs = zoom >= 1e9 ? zoom.toExponential(1) : zoom >= 1e6 ? (zoom/1e6).toFixed(1)+'M' : zoom >= 1e3 ? (zoom/1e3).toFixed(1)+'K' : zoom.toFixed(0) + 'x';
+  document.getElementById('stats').textContent = fpv + ' FPS\n' + zs + (diving ? '' : '\nPAUSED');
+}
+
+render();
+</script>
+</body>
+</html>
